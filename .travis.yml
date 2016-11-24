@@ -1,0 +1,36 @@
+branches:
+  only:
+  - master
+
+cache:
+  directories:
+    - /home/travis/docker/
+
+env:
+  global:
+    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+    - DOCKER_CACHE_FILE=/home/travis/docker/cache.tar.gz
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - if [ -f ${DOCKER_CACHE_FILE} ]; then gunzip -c ${DOCKER_CACHE_FILE} | docker load; fi
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" $DOCKER_REGISTRY
+  - docker build -t $DOCKER_REGISTRY/dtrav:$TRAVIS_COMMIT travis/.
+  - docker push $DOCKER_REGISTRY/dtrav:$TRAVIS_COMMIT
+  - scripts/docker_cache.sh
+  - curl https://sdk.cloud.google.com | bash
+  - source /home/travis/.bashrc
+  - gcloud components update kubectl
+  - kubectl config set-credentials default --token=${K8S_TOKEN}
+  - kubectl config set-cluster default --server=${K8S_SERVER} --insecure-skip-tls-verify=true
+  - kubectl config set-context default --cluster=default --user=default
+  - kubectl config use-context default
+  - kubectl rolling-update $DEPLOYMENT --image=$DOCKER_REGISTRY/dtrav:$TRAVIS_COMMIT
+
+install: true
+
+script: true
