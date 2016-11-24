@@ -19,7 +19,7 @@ services:
 before_install:
   - if [ -f ${DOCKER_CACHE_FILE} ]; then gunzip -c ${DOCKER_CACHE_FILE} | docker load; fi
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" $DOCKER_REGISTRY
-  - docker build -t $DOCKER_REGISTRY/dtrav:$TRAVIS_COMMIT travis/.
+  - docker build -t $DOCKER_REGISTRY/dtrav:$TRAVIS_COMMIT .
   - docker push $DOCKER_REGISTRY/dtrav:$TRAVIS_COMMIT
   - scripts/docker_cache.sh
   - curl https://sdk.cloud.google.com | bash
