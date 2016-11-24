@@ -14,3 +14,5 @@ Environment vars to set up :
  * `TRAVIS_TOKEN` 
  * `ORGANISATION`
  * `REPOSITORY`
+
+You then need to setup a webhook in your github repository.
