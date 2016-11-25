@@ -6,13 +6,12 @@ Cancel duplicate builds in travis
 * If you want your build to run anyway, end the commit message with `--dup`
  * Example. `git commit -m "Change file name --dup"`
 * Obtain your travis access token by doing: `gem install travis && travis login && travis token --pro`
-* Get the repository name from travis. By default, the repository name is set to `HB-Backend`
-* Run the script
- * Example `./cancel_duplicate_builds.rb 'token_name repository_name'`
+* Get the repository name from travis.
 
-Environment vars to set up : 
- * `TRAVIS_TOKEN` 
+
+Environment vars to set up :
+ * `TRAVIS_TOKEN`
  * `ORGANISATION`
  * `REPOSITORY`
 
-You then need to setup a webhook in your github repository.
+* Once the sinatra application has been deployed to a server and can be accessed publicly, setup a webhook in your github repository pointing to `'/cancel-builds'`.
