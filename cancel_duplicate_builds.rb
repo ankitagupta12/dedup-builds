@@ -21,13 +21,13 @@ def fetch_builds(repository, token)
 end
 
 def cancel_build(token, build_id)
-  puts "Whee Canceling Build ##{build_id}"
+  logger.info "Whee Canceling Build ##{build_id}"
   uri = URI.parse("https://api.travis-ci.com/builds/#{build_id}/cancel")
   request = Net::HTTP::Post.new(uri)
   request['Accept'] = 'application/vnd.travis-ci.2+json'
   request['Authorization'] = "token #{token}"
   response = fetch_response(uri, request)
-  puts response.body
+  logger.info response.body
 end
 
 def fetch_response(uri, request)
@@ -37,12 +37,12 @@ def fetch_response(uri, request)
     http.request(request)
   end
 rescue e
-  puts "Error: #{e}"
+  logger.info "Error: #{e}"
 end
 
 def fetch_all_builds(token, repository)
-  puts 'Fetching Builds'
-  json_response = fetch_builds(repository, token)
+  logger.info 'Fetching Builds'
+  fetch_builds(repository, token)
 end
 
 def map_duplicate_builds(json_response)
@@ -50,7 +50,7 @@ def map_duplicate_builds(json_response)
   duplicate_hash = OpenStruct.new(seen: {}, duplicates: {})
   commit_hash =
     if commits
-      puts 'Finding duplicate builds'
+      logger.info 'Finding duplicate builds'
       commits.reduce(duplicate_hash) do |commit_struct, commit|
         pull_request = commit['pull_request_number']
         commit_id = commit['id']
@@ -65,15 +65,15 @@ def map_duplicate_builds(json_response)
         commit_struct
       end
     else
-      puts "No commits in json response #{json_response}"
+      logger.info "No commits in json response #{json_response}"
       duplicate_hash
     end
 
-  duplicate_commits = commit_hash.duplicates.values.flatten
+  commit_hash.duplicates.values.flatten
 end
 
 def cancel_duplicate_builds(json_response, duplicate_commits, token)
-  puts 'Canceling Builds'
+  logger.info 'Canceling Builds'
 
   builds = json_response['builds']
   grouped_builds = builds.group_by { |build| build['commit_id'] } if builds
@@ -84,7 +84,7 @@ def cancel_duplicate_builds(json_response, duplicate_commits, token)
   end
 end
 
-get '/' do 
+get '/' do
   'I\'m alive!'
 end
 
