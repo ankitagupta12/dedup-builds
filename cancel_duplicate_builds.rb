@@ -28,6 +28,7 @@ def cancel_build(token, build_id)
   request['Authorization'] = "token #{token}"
   response = fetch_response(uri, request)
   logger.info response.body
+  response.body
 end
 
 def fetch_response(uri, request)
@@ -77,10 +78,14 @@ def cancel_duplicate_builds(json_response, duplicate_commits, token)
 
   builds = json_response['builds']
   grouped_builds = builds.group_by { |build| build['commit_id'] } if builds
-  duplicate_commits.each do |commit_id|
+  duplicate_commits.reduce([]) do |canceled_builds, commit_id|
     build = grouped_builds[commit_id].first
-    next if %w(passed canceled failed errored).include?(build['state'])
-    cancel_build(token, build['id'])
+    if %w(passed canceled failed errored).include?(build['state'])
+      next canceled_builds
+    end
+    response = cancel_build(token, build['id'])
+    canceled_builds << { build['id'] => response }
+    canceled_builds
   end
 end
 
@@ -94,6 +99,7 @@ post '/cancel-builds' do
 
   json_response = fetch_all_builds(token, repository)
   duplicate_commits = map_duplicate_builds(json_response)
-  cancel_duplicate_builds(json_response, duplicate_commits, token)
-  'Builds canceled'
+  canceled_builds =
+    cancel_duplicate_builds(json_response, duplicate_commits, token)
+  { canceled_builds: canceled_builds }
 end
