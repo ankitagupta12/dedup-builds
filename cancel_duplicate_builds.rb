@@ -26,7 +26,7 @@ def cancel_build(token, build_id)
   request = Net::HTTP::Post.new(uri)
   request['Accept'] = 'application/vnd.travis-ci.2+json'
   request['Authorization'] = "token #{token}"
-  response = JSON.parse(fetch_response(uri, request).body)
+  response = fetch_response(uri, request).body
   logger.info response
   response
 end
