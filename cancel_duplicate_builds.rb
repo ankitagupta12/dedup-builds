@@ -20,12 +20,12 @@ def fetch_builds(repository, token)
   JSON.parse(response.body)
 end
 
-def cancel_build(token, build_id)
+def cancel_build(build_id)
   logger.info "Whee Canceling Build ##{build_id}"
   uri = URI.parse("https://api.travis-ci.com/builds/#{build_id}/cancel")
   request = Net::HTTP::Post.new(uri)
   request['Accept'] = 'application/vnd.travis-ci.2+json'
-  request['Authorization'] = "token #{token}"
+  request['Authorization'] = "token #{ENV['TRAVIS_TOKEN']}"
   response = fetch_response(uri, request).body
   logger.info response
   response
@@ -73,7 +73,7 @@ def map_duplicate_builds(json_response)
   commit_hash.duplicates.values.flatten
 end
 
-def cancel_duplicate_builds(json_response, duplicate_commits, token)
+def cancel_duplicate_builds(json_response, duplicate_commits)
   logger.info 'Canceling Builds'
 
   builds = json_response['builds']
@@ -83,7 +83,7 @@ def cancel_duplicate_builds(json_response, duplicate_commits, token)
     if %w(passed canceled failed errored).include?(build['state'])
       next canceled_builds
     end
-    response = cancel_build(token, build['id'])
+    response = cancel_build(build['id'])
     canceled_builds << { build['id'] => response }
     canceled_builds
   end
@@ -100,6 +100,6 @@ post '/cancel-builds' do
   json_response = fetch_all_builds(token, repository)
   duplicate_commits = map_duplicate_builds(json_response)
   canceled_builds =
-    cancel_duplicate_builds(json_response, duplicate_commits, token)
+    cancel_duplicate_builds(json_response, duplicate_commits)
   { canceled_builds: canceled_builds }
 end
