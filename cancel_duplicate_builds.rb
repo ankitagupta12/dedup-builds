@@ -1,105 +1,33 @@
-require 'net/http'
-require 'json'
-require 'ostruct'
 require 'sinatra'
 
 set :bind, '0.0.0.0'
-
-def duplicate_enabled_commit?(commit_message)
-  commit_message.match(/--dup$/)
-end
-
-def fetch_builds(repository, token)
-  uri = URI.parse(
-    "https://api.travis-ci.com/repos/#{ENV['ORGANISATION']}/#{repository}/builds?limit=30"
-  )
-  request = Net::HTTP::Get.new(uri)
-  request['Accept'] = 'application/vnd.travis-ci.2+json'
-  request['Authorization'] = "token #{token}"
-  response = fetch_response(uri, request)
-  JSON.parse(response.body)
-end
-
-def cancel_build(build_id)
-  logger.info "Whee Canceling Build ##{build_id}"
-  uri = URI.parse("https://api.travis-ci.com/builds/#{build_id}/cancel")
-  request = Net::HTTP::Post.new(uri)
-  request['Accept'] = 'application/vnd.travis-ci.2+json'
-  request['Authorization'] = "token #{ENV['TRAVIS_TOKEN']}"
-  response = fetch_response(uri, request).body
-  logger.info response
-  response
-end
-
-def fetch_response(uri, request)
-  Net::HTTP.start(
-    uri.hostname, uri.port, use_ssl: uri.scheme == 'https'
-  ) do |http|
-    http.request(request)
-  end
-rescue e
-  logger.info "Error: #{e}"
-end
-
-def fetch_all_builds(token, repository)
-  logger.info 'Fetching Builds'
-  fetch_builds(repository, token)
-end
-
-def map_duplicate_builds(json_response)
-  commits = json_response['commits']
-  duplicate_hash = OpenStruct.new(seen: {}, duplicates: {})
-  commit_hash =
-    if commits
-      logger.info 'Finding duplicate builds'
-      commits.reduce(duplicate_hash) do |commit_struct, commit|
-        pull_request = commit['pull_request_number']
-        commit_id = commit['id']
-        if pull_request &&
-           commit_struct.seen.key?(pull_request) &&
-           !duplicate_enabled_commit?(commit['message'])
-          commit_struct.duplicates[pull_request] ||= []
-          commit_struct.duplicates[pull_request] << commit_id
-        else
-          commit_struct.seen[pull_request] = commit_id
-        end
-        commit_struct
-      end
-    else
-      logger.info "No commits in json response #{json_response}"
-      duplicate_hash
-    end
-
-  commit_hash.duplicates.values.flatten
-end
-
-def cancel_duplicate_builds(json_response, duplicate_commits)
-  logger.info 'Canceling Builds'
-
-  builds = json_response['builds']
-  grouped_builds = builds.group_by { |build| build['commit_id'] } if builds
-  duplicate_commits.reduce([]) do |canceled_builds, commit_id|
-    build = grouped_builds[commit_id].first
-    if %w(passed canceled failed errored).include?(build['state'])
-      next canceled_builds
-    end
-    response = cancel_build(build['id'])
-    canceled_builds << { build['id'] => response }
-    canceled_builds
-  end
-end
 
 get '/' do
   'I\'m alive!'
 end
 
-post '/cancel-builds' do
-  token = ENV['TRAVIS_TOKEN']
-  repository = ENV['REPOSITORY']
-
-  json_response = fetch_all_builds(token, repository)
-  duplicate_commits = map_duplicate_builds(json_response)
+def cancel_builds(client)
+  json_response = client.fetch_all_builds
+  duplicate_commits = client.map_duplicate_builds(
+    client.commits(json_response),
+    client.pull_request_key
+  )
   canceled_builds =
-    cancel_duplicate_builds(json_response, duplicate_commits)
+    client.cancel_duplicate_builds(
+      json_response['builds'],
+      duplicate_commits,
+      client.ignored_build_statuses,
+      client.build_key
+    )
   { canceled_builds: canceled_builds }
+end
+
+post '/cancel-travis-builds' do
+  travis_client = TravisClient.new(ENV['TRAVIS_TOKEN'], ENV['REPOSITORY'])
+  cancel_builds(travis_client)
+end
+
+post '/cancel-drone-builds' do
+  drone_client = DroneClient.new(ENV['DRONE_TOKEN'], ENV['REPOSITORY'])
+  cancel_builds(drone_client)
 end
