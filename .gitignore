@@ -1,0 +1,5 @@
+# Ignore application configuration
+.env
+
+#Ignore editor configs
+.idea/
