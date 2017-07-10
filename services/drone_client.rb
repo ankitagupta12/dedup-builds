@@ -4,7 +4,7 @@ require 'ostruct'
 
 class DroneClient < Client
   def initialize(token, repository)
-    @token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZXh0IjoiYW5raXRhZ3VwdGExMiIsInR5cGUiOiJ1c2VyIn0.oyj973oZ36Qamg7uqSpV84Kcfq1xuRxFRYfo_IPVTr8'
+    @token = token
     @repository = repository
   end
 
@@ -16,14 +16,18 @@ class DroneClient < Client
   end
 
   def cancel_build(build_id)
+    logger.info "Cancelling build with id: #{build_id}"
     endpoint = [drone_endpoint, build_endpoint(build_id)].join('/')
     uri = URI.parse("#{endpoint}?access_token=#{@token}")
     request = Net::HTTP::Delete.new(uri)
-    response = fetch_response(uri, request)
-    JSON.parse(response.body)
+    fetch_response(uri, request).body
   end
 
   def commits(response)
+    response
+  end
+
+  def builds(response)
     response
   end
 
@@ -37,6 +41,10 @@ class DroneClient < Client
 
   def build_key
     'number'
+  end
+
+  def commit_id
+    'id'
   end
 
   private

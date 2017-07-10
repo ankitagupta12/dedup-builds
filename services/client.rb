@@ -1,21 +1,19 @@
 require 'net/http'
 require 'json'
 require 'ostruct'
+require 'logger'
 
 class Client
-  def cancel_duplicate_builds(builds, duplicate_commits, ignored_build_statuses, build_key)
+  def cancel_duplicate_builds(builds, duplicate_commits, ignored_build_statuses, build_key, commit_id)
     logger.info 'Canceling Builds'
-    grouped_builds = builds.group_by { |build| build['commit_id'] } if builds
-    duplicate_commits.reduce([]) do |canceled_builds, commit_id|
-      build = grouped_builds[commit_id].first
-      if ignored_build_statuses.include?(build['state'] || build['status'])
-        next canceled_builds
-      end
+    grouped_builds = builds.group_by { |build| build[commit_id] } if builds
+    duplicate_commits.map do |commit_id|
+      build = grouped_builds[commit_id].last
+      next if ignored_build_statuses.include?(build['state'] || build['status'])
       build_reference = build[build_key]
       response = cancel_build(build_reference)
-      canceled_builds << {build_reference => response}
-      canceled_builds
-    end
+      { build_reference => response }
+    end.compact
   end
 
   def fetch_response(uri, request)
@@ -60,5 +58,9 @@ class Client
         duplicate_hash
       end
     commit_hash.duplicates.values.flatten
+  end
+
+  def logger
+    @logger ||= Logger.new(STDOUT)
   end
 end

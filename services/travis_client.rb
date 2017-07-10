@@ -5,7 +5,6 @@ require 'ostruct'
 class TravisClient < Client
   def initialize(token, repository)
     @token = token
-    @token = token
     @repository = repository
   end
 
@@ -35,6 +34,10 @@ class TravisClient < Client
     response['commits']
   end
 
+  def builds(response)
+    response['builds']
+  end
+
   def pull_request_key
     'pull_request_number'
   end
@@ -45,5 +48,9 @@ class TravisClient < Client
 
   def build_key
     'id'
+  end
+
+  def commit_id
+    'commit_id'
   end
 end
