@@ -53,7 +53,7 @@ class DroneClient < Client
     [
       ENV['DRONE_ENDPOINT'],
       'api/repos',
-      ENV['OWNER'],
+      ENV['ORGANIZATION'],
       ENV['REPOSITORY'],
       'builds'
     ].join('/')
