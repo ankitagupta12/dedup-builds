@@ -27,8 +27,7 @@ class DuplicateBuilds < Sinatra::Base
 
   post '/cancel-travis-builds' do
     travis_client = TravisClient.new(ENV['TRAVIS_TOKEN'], ENV['REPOSITORY'])
-    cancel_builds(travis_client)
-    result = 'Builds cancelled!'
+    result = cancel_builds(travis_client)
     "Builds cancelled! #{result}"
   end
 

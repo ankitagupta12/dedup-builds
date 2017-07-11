@@ -1,7 +1,3 @@
-require 'net/http'
-require 'json'
-require 'ostruct'
-
 class TravisClient < Client
   def initialize(token, repository)
     @token = token

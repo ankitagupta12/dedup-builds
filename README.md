@@ -17,4 +17,5 @@ Environment vars to set up :
  * `DRONE_ENDPOINT`
  * `DRONE_TOKEN`
 
-* Once the sinatra application has been deployed to a server, it can be accessed publicly, setup a webhook in your github repository pointing to `'/cancel-drone-builds'` or `'/cancel-travis-builds'`.
+* Once the sinatra application has been deployed to a server, it can be accessed publicly, setup a webhook in your github repository pointing to `'/cancel-drone-builds'` or `'/cancel-travis-builds'`. Start your server locally by :
+ * `bundle exec rackup -p 3000`
